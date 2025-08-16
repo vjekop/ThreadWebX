@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, render_template_string, render_template
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
@@ -18,8 +18,8 @@ import whisper
 import firebase_admin
 from firebase_admin import credentials, firestore, auth, storage
 
-# Initialize Flask with proper template folder
-app = Flask(__name__, template_folder='.')  # Look for templates in current directory
+# Initialize Flask - configure for root directory
+app = Flask(__name__)
 CORS(app)
 
 # Load environment variables
@@ -285,83 +285,31 @@ def process_job_background(job_id, job_type, data):
     thread = threading.Thread(target=run)
     thread.start()
 
-# Routes
+# MAIN ROUTE - Serve index.html from root directory
 @app.route('/')
 def index():
-    # Try multiple approaches to find the HTML file
-    possible_paths = [
-        'index.html',
-        './index.html',
-        os.path.join(os.path.dirname(__file__), 'index.html'),
-        os.path.join(os.getcwd(), 'index.html')
-    ]
-    
-    # Debug info
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"Script directory: {os.path.dirname(__file__)}")
-    print(f"Files in current directory: {os.listdir('.')}")
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    print(f"Successfully loaded HTML from: {path}")
-                    return content
-            except Exception as e:
-                print(f"Error reading {path}: {e}")
-                continue
-    
-    # If we can't find the HTML file, try using Flask's render_template
+    """Serve the main HTML file from root directory"""
     try:
-        return render_template('index.html')
-    except Exception as e:
-        print(f"Template rendering failed: {e}")
-    
-    # Final fallback - return a functional HTML page
-    return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ThreadAI - Transform Content into Viral Threads</title>
-        <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-            body { background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #16213e, #0f3460); min-height: 100vh; color: white; }
-            .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        </style>
-    </head>
-    <body class="flex items-center justify-center min-h-screen p-6">
-        <div class="glass rounded-2xl p-8 max-w-md text-center">
-            <h1 class="text-4xl font-bold mb-4">ThreadAI</h1>
-            <p class="mb-6">The HTML file couldn't be loaded. Please check the deployment.</p>
-            <div class="text-sm text-gray-300">
-                <p>Debug info:</p>
-                <p>API is running at: <a href="/health" class="text-blue-400">/health</a></p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-# Debug route to check file system
-@app.route('/debug')
-def debug():
-    debug_info = {
-        'cwd': os.getcwd(),
-        'script_dir': os.path.dirname(__file__),
-        'files_in_cwd': os.listdir('.'),
-        'files_in_script_dir': os.listdir(os.path.dirname(__file__)) if os.path.dirname(__file__) else 'N/A',
-        'index_exists': os.path.exists('index.html'),
-        'env_vars': {
-            'PORT': os.environ.get('PORT'),
-            'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
-        }
-    }
-    return jsonify(debug_info)
+        # Get the directory where this script is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Try to serve index.html from the same directory as app.py
+        return send_from_directory(current_dir, 'index.html')
+    except FileNotFoundError:
+        # If that fails, try current working directory
+        try:
+            return send_from_directory('.', 'index.html')
+        except FileNotFoundError:
+            # Final fallback with debug info
+            files = os.listdir('.')
+            return f"""
+            <h1>Index.html not found</h1>
+            <p>Current directory: {os.getcwd()}</p>
+            <p>Script directory: {os.path.dirname(os.path.abspath(__file__))}</p>
+            <p>Files in current directory: {files}</p>
+            <p>Looking for: index.html</p>
+            <p>Check the <a href="/health">health endpoint</a> for more info</p>
+            """
 
 @app.route('/api/upload/youtube', methods=['POST'])
 @verify_token
@@ -464,8 +412,11 @@ def health_check():
     return jsonify({
         'status': 'healthy', 
         'message': 'Thread Generator API is running',
-        'files_found': os.listdir('.'),
-        'index_exists': os.path.exists('index.html')
+        'current_directory': os.getcwd(),
+        'script_directory': os.path.dirname(os.path.abspath(__file__)),
+        'files_in_current_dir': os.listdir('.'),
+        'index_html_exists': os.path.exists('index.html'),
+        'index_html_path': os.path.abspath('index.html') if os.path.exists('index.html') else 'Not found'
     })
 
 if __name__ == '__main__':
