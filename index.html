@@ -3,189 +3,522 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧵 Thread Generator - Turn Content into Viral Threads</title>
+    <title>ThreadAI - Transform Content into Viral Threads</title>
     <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        
+        body {
+            background: #0a0a0f;
+            overflow-x: hidden;
         }
-        .tab-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-            cursor: pointer;
+        
+        /* Animated background */
+        .bg-animated {
+            background: linear-gradient(-45deg, #0a0a0f, #1a1a2e, #16213e, #0f3460);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
         }
-        .tab-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        .tab-btn.active {
-            background: #7c3aed;
-            color: white;
-        }
-        .loading-spinner {
-            border: 2px solid rgba(255, 255, 255, 0.3);
+        
+        /* Floating particles */
+        .particle {
+            position: absolute;
             border-radius: 50%;
-            border-top: 2px solid #fff;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
+            background: rgba(139, 92, 246, 0.1);
+            animation: float 20s infinite linear;
+            pointer-events: none;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
         }
-        .thread-card {
-            background: rgba(255, 255, 255, 0.08);
+        
+        /* Glass morphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
         }
-        .tweet-bubble {
+        
+        .glass-intense {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Button animations */
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+        }
+        
+        /* Tab animations */
+        .tab-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
-        .error-message {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        /* Loading animations */
+        .loading-orb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #8b5cf6, #ec4899);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #8b5cf6, #ec4899, #8b5cf6);
+            background-size: 200% 100%;
+            animation: progressShimmer 2s linear infinite;
+        }
+        
+        @keyframes progressShimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        /* Thread card animations */
+        .thread-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideInUp 0.6s ease-out forwards;
+        }
+        
+        .thread-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 25px 50px rgba(139, 92, 246, 0.15);
+        }
+        
+        @keyframes slideInUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Tweet bubble effects */
+        .tweet-bubble {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tweet-bubble:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+        
+        /* File upload animations */
+        .upload-zone {
+            border: 2px dashed rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+            animation: rotate 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-zone:hover::before {
+            opacity: 1;
+        }
+        
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+        
+        .upload-zone:hover {
+            border-color: rgba(139, 92, 246, 0.6);
+            background: rgba(139, 92, 246, 0.05);
+        }
+        
+        /* Notification animations */
+        .notification {
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        /* Hero section animations */
+        .hero-title {
+            background: linear-gradient(135deg, #ffffff, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            0% { filter: brightness(1); }
+            100% { filter: brightness(1.2); }
+        }
+        
+        /* Scroll animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border-radius: 4px;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            position: relative;
+        }
+        
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Ripple effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        /* Error message animations */
+        .error-slide {
+            transform: translateY(-100%);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .error-slide.show {
+            transform: translateY(0);
+            opacity: 1;
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen text-white">
-    <div id="app">
+<body class="bg-animated min-h-screen text-white relative">
+    <!-- Animated particles background -->
+    <div id="particles-container" class="fixed inset-0 pointer-events-none z-0"></div>
+    
+    <div id="app" class="relative z-10">
         <!-- Login Screen -->
         <div id="loginScreen" class="min-h-screen flex items-center justify-center p-6">
-            <div class="glass p-8 rounded-2xl max-w-md w-full text-center">
-                <div class="mb-6">
-                    <h1 class="text-4xl font-bold mb-2">🧵 Thread Generator</h1>
-                    <p class="text-gray-200">Turn videos & articles into viral Twitter threads with AI</p>
-                </div>
-                
-                <div class="mb-6 text-sm text-gray-300">
-                    <div class="flex items-center justify-center space-x-4 mb-4">
-                        <span>📺 YouTube</span>
-                        <span>🎬 Videos</span>
-                        <span>📄 Articles</span>
+            <div class="glass-intense rounded-3xl p-10 max-w-lg w-full text-center fade-in visible">
+                <!-- Logo and branding -->
+                <div class="mb-8">
+                    <div class="mx-auto w-20 h-20 glass rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-thread text-3xl bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"></i>
                     </div>
-                    <p>Powered by OpenAI & Whisper</p>
+                    <h1 class="text-5xl font-bold hero-title mb-3">ThreadAI</h1>
+                    <p class="text-gray-300 text-lg">Transform content into viral Twitter threads with AI</p>
                 </div>
                 
-                <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 py-3 px-6 rounded-lg transition-colors font-medium">
-                    🚀 Sign in with Google
+                <!-- Features showcase -->
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="glass rounded-xl p-4">
+                        <i class="fab fa-youtube text-red-400 text-2xl mb-2"></i>
+                        <p class="text-xs text-gray-300">YouTube</p>
+                    </div>
+                    <div class="glass rounded-xl p-4">
+                        <i class="fas fa-video text-blue-400 text-2xl mb-2"></i>
+                        <p class="text-xs text-gray-300">Videos</p>
+                    </div>
+                    <div class="glass rounded-xl p-4">
+                        <i class="fas fa-file-text text-green-400 text-2xl mb-2"></i>
+                        <p class="text-xs text-gray-300">Articles</p>
+                    </div>
+                </div>
+                
+                <button id="loginBtn" class="w-full btn-primary py-4 px-8 rounded-xl font-semibold text-lg ripple flex items-center justify-center space-x-3">
+                    <i class="fab fa-google"></i>
+                    <span>Continue with Google</span>
                 </button>
                 
-                <div id="loginError" class="error-message rounded-lg p-3 mt-4 hidden">
+                <div id="loginError" class="error-slide bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-4 mt-6">
                     <p>Login failed. Please try again.</p>
                 </div>
+                
+                <p class="text-xs text-gray-400 mt-6">Powered by OpenAI GPT-4 & Whisper</p>
             </div>
         </div>
 
         <!-- Main App -->
         <div id="mainApp" class="hidden">
             <!-- Header -->
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 class="text-3xl font-bold">🧵 Thread Generator</h1>
-                        <p class="text-gray-300">AI-powered content to threads</p>
+            <header class="relative z-20 p-6 lg:p-8">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 glass rounded-xl flex items-center justify-center">
+                            <i class="fas fa-thread text-xl text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">ThreadAI</h1>
+                            <p class="text-gray-400 text-sm">AI-powered thread generator</p>
+                        </div>
                     </div>
-                    <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
-                        Logout
-                    </button>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div id="userInfo" class="glass rounded-xl px-4 py-2 flex items-center space-x-3">
+                            <img id="userAvatar" class="w-8 h-8 rounded-full" alt="User">
+                            <span id="userName" class="text-sm font-medium"></span>
+                        </div>
+                        <button id="logoutBtn" class="glass hover:bg-red-500/20 transition-colors px-4 py-2 rounded-xl">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
                 </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="px-6 lg:px-8 pb-12">
+                <!-- Hero Section -->
+                <section class="text-center mb-16 fade-in">
+                    <h2 class="text-6xl lg:text-7xl font-bold hero-title mb-6">Create Viral Threads</h2>
+                    <p class="text-xl text-gray-300 max-w-2xl mx-auto">Upload any content and watch our AI transform it into engaging Twitter threads that drive massive engagement</p>
+                </section>
 
                 <!-- Input Section -->
-                <div class="glass rounded-2xl p-6 mb-8 max-w-4xl mx-auto">
-                    <h2 class="text-xl font-bold mb-4">Create Your Thread</h2>
+                <section class="glass-intense rounded-3xl p-8 lg:p-12 mb-12 max-w-5xl mx-auto fade-in">
+                    <h3 class="text-3xl font-bold mb-8 text-center">Choose Your Content Source</h3>
                     
                     <!-- Tabs -->
-                    <div class="flex space-x-2 mb-6">
-                        <button class="tab-btn active" data-tab="youtube">📺 YouTube URL</button>
-                        <button class="tab-btn" data-tab="upload">🎬 Upload Video</button>
-                        <button class="tab-btn" data-tab="article">📄 Article Text</button>
+                    <div class="flex flex-wrap justify-center gap-4 mb-8">
+                        <button class="tab-btn active px-6 py-3 rounded-xl flex items-center space-x-3 ripple" data-tab="youtube">
+                            <i class="fab fa-youtube text-red-400"></i>
+                            <span>YouTube URL</span>
+                        </button>
+                        <button class="tab-btn px-6 py-3 rounded-xl flex items-center space-x-3 ripple" data-tab="upload">
+                            <i class="fas fa-cloud-upload-alt text-blue-400"></i>
+                            <span>Upload Video</span>
+                        </button>
+                        <button class="tab-btn px-6 py-3 rounded-xl flex items-center space-x-3 ripple" data-tab="article">
+                            <i class="fas fa-file-text text-green-400"></i>
+                            <span>Article Text</span>
+                        </button>
                     </div>
 
                     <!-- YouTube Tab -->
                     <div id="youtube-tab" class="tab-content">
-                        <input type="url" id="youtubeUrl" placeholder="https://youtube.com/watch?v=..." 
-                               class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 mb-4 placeholder-gray-400">
-                        <button onclick="processYoutube()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
-                            🚀 Generate Threads
-                        </button>
+                        <div class="max-w-2xl mx-auto">
+                            <label class="block text-sm font-medium text-gray-300 mb-3">YouTube Video URL</label>
+                            <div class="relative">
+                                <i class="fab fa-youtube absolute left-4 top-1/2 transform -translate-y-1/2 text-red-400"></i>
+                                <input type="url" id="youtubeUrl" placeholder="https://youtube.com/watch?v=..." 
+                                       class="w-full bg-white/5 border border-white/20 rounded-xl pl-12 pr-4 py-4 placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all">
+                            </div>
+                            <button onclick="processYoutube()" class="w-full mt-6 btn-primary py-4 px-8 rounded-xl font-semibold ripple flex items-center justify-center space-x-3">
+                                <i class="fas fa-magic"></i>
+                                <span>Generate Threads</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Upload Tab -->
                     <div id="upload-tab" class="tab-content hidden">
-                        <div class="border-2 border-dashed border-purple-500/50 rounded-xl p-8 text-center mb-4">
-                            <div class="mb-4">🎬</div>
-                            <h3 class="text-lg font-semibold mb-2">Upload Video File</h3>
-                            <p class="text-gray-400 mb-4">MP4, MOV, AVI, WAV, MP3 (Max 100MB)</p>
-                            <input type="file" id="videoFile" accept="video/*,audio/*" class="hidden">
-                            <label for="videoFile" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg cursor-pointer transition-colors inline-block">
-                                Choose File
-                            </label>
-                            <p id="fileName" class="text-green-400 mt-2 hidden"></p>
+                        <div class="max-w-2xl mx-auto">
+                            <div class="upload-zone rounded-2xl p-12 text-center relative">
+                                <div class="relative z-10">
+                                    <i class="fas fa-cloud-upload-alt text-6xl text-purple-400 mb-6"></i>
+                                    <h4 class="text-2xl font-semibold mb-3">Upload Your Video</h4>
+                                    <p class="text-gray-400 mb-6">Support for MP4, MOV, AVI, WAV, MP3 files up to 100MB</p>
+                                    <input type="file" id="videoFile" accept="video/*,audio/*" class="hidden">
+                                    <label for="videoFile" class="btn-primary py-3 px-8 rounded-xl cursor-pointer inline-flex items-center space-x-3 ripple">
+                                        <i class="fas fa-folder-open"></i>
+                                        <span>Choose File</span>
+                                    </label>
+                                    <div id="fileName" class="text-green-400 mt-4 font-medium hidden"></div>
+                                </div>
+                            </div>
+                            <button onclick="uploadVideo()" class="w-full mt-6 btn-primary py-4 px-8 rounded-xl font-semibold ripple flex items-center justify-center space-x-3">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload & Process</span>
+                            </button>
                         </div>
-                        <button onclick="uploadVideo()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
-                            📤 Upload & Process
-                        </button>
                     </div>
 
                     <!-- Article Tab -->
                     <div id="article-tab" class="tab-content hidden">
-                        <textarea id="articleText" placeholder="Paste your article content here..." rows="8"
-                                  class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 mb-4 placeholder-gray-400"></textarea>
-                        <button onclick="processArticle()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
-                            ✨ Generate Threads
-                        </button>
+                        <div class="max-w-2xl mx-auto">
+                            <label class="block text-sm font-medium text-gray-300 mb-3">Article Content</label>
+                            <textarea id="articleText" placeholder="Paste your article content here..." rows="12"
+                                      class="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-4 placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"></textarea>
+                            <button onclick="processArticle()" class="w-full mt-6 btn-primary py-4 px-8 rounded-xl font-semibold ripple flex items-center justify-center space-x-3">
+                                <i class="fas fa-sparkles"></i>
+                                <span>Generate Threads</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Error Display -->
-                    <div id="errorMessage" class="error-message rounded-lg p-4 mt-4 hidden">
-                        <p id="errorText"></p>
+                    <div id="errorMessage" class="error-slide bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-4 mt-6">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p id="errorText"></p>
+                        </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- Processing Status -->
-                <div id="processingStatus" class="glass rounded-2xl p-6 mb-8 max-w-4xl mx-auto hidden">
-                    <div class="flex items-center mb-4">
-                        <div class="loading-spinner mr-3"></div>
-                        <h3 class="text-xl font-bold">Processing Your Content...</h3>
+                <section id="processingStatus" class="glass-intense rounded-3xl p-8 lg:p-12 mb-12 max-w-4xl mx-auto hidden">
+                    <div class="text-center">
+                        <div class="flex justify-center items-center mb-6">
+                            <div class="loading-orb mr-4"></div>
+                            <h3 class="text-3xl font-bold">Processing Your Content</h3>
+                        </div>
+                        
+                        <div class="relative bg-white/10 rounded-full h-4 mb-6 overflow-hidden">
+                            <div id="progressBar" class="progress-bar h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                        </div>
+                        
+                        <p id="statusText" class="text-xl text-gray-300 mb-8">Initializing...</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                            <div class="glass rounded-xl p-6">
+                                <i class="fas fa-download text-blue-400 text-3xl mb-3"></i>
+                                <p class="text-sm text-gray-300">Downloading Content</p>
+                            </div>
+                            <div class="glass rounded-xl p-6">
+                                <i class="fas fa-microphone text-green-400 text-3xl mb-3"></i>
+                                <p class="text-sm text-gray-300">AI Transcription</p>
+                            </div>
+                            <div class="glass rounded-xl p-6">
+                                <i class="fas fa-brain text-purple-400 text-3xl mb-3"></i>
+                                <p class="text-sm text-gray-300">Thread Generation</p>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="bg-white/20 rounded-full h-3 mb-4">
-                        <div id="progressBar" class="bg-purple-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                    </div>
-                    
-                    <p id="statusText" class="text-gray-300">Starting...</p>
-                    
-                    <div class="mt-4 text-sm text-gray-400">
-                        <p>🎵 Transcribing audio with Whisper...</p>
-                        <p>🤖 Generating threads with AI...</p>
-                        <p>✨ Optimizing for engagement...</p>
-                    </div>
-                </div>
+                </section>
 
                 <!-- Results -->
-                <div id="results" class="max-w-6xl mx-auto hidden">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-2xl font-bold">🎉 Your Viral Threads</h2>
-                        <button onclick="exportAllThreads()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors">
-                            💾 Export All
+                <section id="results" class="max-w-7xl mx-auto hidden">
+                    <div class="flex flex-col lg:flex-row justify-between items-center mb-8">
+                        <div>
+                            <h2 class="text-4xl font-bold mb-2">🎉 Your Viral Threads</h2>
+                            <p class="text-gray-400">Ready to take over Twitter</p>
+                        </div>
+                        <button onclick="exportAllThreads()" class="mt-4 lg:mt-0 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl transition-all ripple flex items-center space-x-3">
+                            <i class="fas fa-download"></i>
+                            <span>Export All</span>
                         </button>
                     </div>
-                    <div id="threadsContainer" class="grid gap-6 md:grid-cols-2"></div>
-                </div>
-            </div>
+                    <div id="threadsContainer" class="grid gap-8 lg:grid-cols-2"></div>
+                </section>
+            </main>
         </div>
     </div>
+
+    <!-- Notification System -->
+    <div id="notifications" class="fixed top-6 right-6 z-50 space-y-4"></div>
 
     <script>
         // Firebase configuration - REPLACE WITH YOUR CONFIG
@@ -205,19 +538,70 @@
         let currentUser = null;
         let currentThreads = [];
 
-        // Helper functions
+        // Initialize particles
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = (Math.random() * 4 + 2) + 'px';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification glass-intense rounded-xl p-4 min-w-72 ${type === 'error' ? 'border-red-500/30 text-red-300' : 'border-green-500/30 text-green-300'}`;
+            notification.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <i class="fas ${type === 'error' ? 'fa-times-circle' : 'fa-check-circle'}"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('notifications').appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 400);
+            }, 5000);
+        }
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
             errorText.textContent = message;
-            errorDiv.classList.remove('hidden');
-            setTimeout(() => {
-                errorDiv.classList.add('hidden');
-            }, 5000);
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+            showNotification(message, 'error');
         }
 
         function hideError() {
-            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        // Scroll animations
+        function observeElements() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.fade-in').forEach(el => {
+                observer.observe(el);
+            });
         }
 
         // Auth state listener
@@ -226,6 +610,13 @@
                 currentUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
+                
+                // Update user info
+                document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/32';
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                
+                observeElements();
+                createParticles();
             } else {
                 currentUser = null;
                 document.getElementById('loginScreen').classList.remove('hidden');
@@ -238,7 +629,7 @@
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).catch(error => {
                 console.error('Login error:', error);
-                document.getElementById('loginError').classList.remove('hidden');
+                document.getElementById('loginError').classList.add('show');
             });
         };
 
@@ -264,10 +655,10 @@
             const fileName = this.files[0]?.name;
             if (fileName) {
                 const fileSizeMB = (this.files[0].size / 1024 / 1024).toFixed(2);
-                document.getElementById('fileName').textContent = `✓ ${fileName} (${fileSizeMB}MB)`;
+                document.getElementById('fileName').innerHTML = `<i class="fas fa-check-circle text-green-400 mr-2"></i>${fileName} (${fileSizeMB}MB)`;
                 document.getElementById('fileName').classList.remove('hidden');
                 
-                if (this.files[0].size > 100 * 1024 * 1024) { // 100MB limit
+                if (this.files[0].size > 100 * 1024 * 1024) {
                     showError('File size must be less than 100MB');
                     this.value = '';
                     document.getElementById('fileName').classList.add('hidden');
@@ -328,6 +719,7 @@
                 const result = await apiCall('/upload/youtube', 'POST', { url });
                 if (result.job_id) {
                     pollJobStatus(result.job_id);
+                    showNotification('Processing started! This may take a few minutes.');
                 } else {
                     showError('Error: ' + (result.error || 'Unknown error'));
                 }
@@ -353,6 +745,7 @@
                 const result = await apiCall('/upload/video', 'POST', formData);
                 if (result.job_id) {
                     pollJobStatus(result.job_id);
+                    showNotification('Upload started! Processing your video...');
                 } else {
                     showError('Error: ' + (result.error || 'Unknown error'));
                 }
@@ -380,6 +773,7 @@
                 const result = await apiCall('/upload/article', 'POST', { text });
                 if (result.job_id) {
                     pollJobStatus(result.job_id);
+                    showNotification('Generating threads from your article...');
                 } else {
                     showError('Error: ' + (result.error || 'Unknown error'));
                 }
@@ -401,10 +795,10 @@
                     
                     let statusMessage = 'Processing...';
                     if (status.status === 'processing') {
-                        if (status.progress <= 30) statusMessage = 'Downloading content...';
-                        else if (status.progress <= 60) statusMessage = 'Extracting audio...';
-                        else if (status.progress <= 80) statusMessage = 'Transcribing with AI...';
-                        else statusMessage = 'Generating threads...';
+                        if (status.progress <= 30) statusMessage = 'Downloading and analyzing content...';
+                        else if (status.progress <= 60) statusMessage = 'Extracting audio and preparing...';
+                        else if (status.progress <= 80) statusMessage = 'Transcribing with AI-powered speech recognition...';
+                        else statusMessage = 'Generating engaging Twitter threads...';
                     }
                     
                     document.getElementById('statusText').textContent = `${statusMessage} ${status.progress}%`;
@@ -413,11 +807,12 @@
                         document.getElementById('processingStatus').classList.add('hidden');
                         const result = await apiCall(`/job/${jobId}/result`);
                         displayResults(result.threads);
+                        showNotification('🎉 Threads generated successfully!');
                     } else if (status.status === 'failed') {
                         document.getElementById('processingStatus').classList.add('hidden');
                         showError('Processing failed: ' + (status.error || 'Unknown error'));
                     } else {
-                        setTimeout(poll, 3000); // Poll every 3 seconds
+                        setTimeout(poll, 2000);
                     }
                 } catch (error) {
                     document.getElementById('processingStatus').classList.add('hidden');
@@ -441,30 +836,35 @@
             
             threads.forEach((thread, index) => {
                 const threadDiv = document.createElement('div');
-                threadDiv.className = 'thread-card rounded-xl p-6';
+                threadDiv.className = 'thread-card rounded-2xl p-8';
+                threadDiv.style.animationDelay = `${index * 0.1}s`;
                 threadDiv.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-bold flex-1">${thread.title}</h3>
-                        <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm ml-4">${thread.engagement}</span>
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 class="text-2xl font-bold flex-1 pr-4">${thread.title}</h3>
+                        <div class="flex items-center space-x-2">
+                            <span class="status-indicator bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">${thread.engagement}</span>
+                        </div>
                     </div>
                     
-                    <div class="space-y-3 mb-6 max-h-80 overflow-y-auto">
+                    <div class="space-y-4 mb-8 max-h-96 overflow-y-auto custom-scrollbar">
                         ${thread.tweets.map((tweet, i) => `
-                            <div class="tweet-bubble p-3 rounded-lg">
-                                <div class="flex items-start space-x-3">
-                                    <span class="bg-purple-600 text-xs px-2 py-1 rounded-full font-medium">${i + 1}</span>
-                                    <p class="text-gray-200 text-sm flex-1 leading-relaxed">${tweet}</p>
+                            <div class="tweet-bubble p-4 rounded-xl">
+                                <div class="flex items-start space-x-4">
+                                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full font-bold flex-shrink-0">${i + 1}</div>
+                                    <p class="text-gray-200 leading-relaxed">${tweet}</p>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                     
-                    <div class="flex space-x-2">
-                        <button onclick="copyThread(${index})" class="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm">
-                            📋 Copy Thread
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="copyThread(${index})" class="flex-1 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl transition-all ripple flex items-center justify-center space-x-2">
+                            <i class="fas fa-copy"></i>
+                            <span>Copy Thread</span>
                         </button>
-                        <button onclick="shareThread(${index})" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors text-sm">
-                            🔗 Share
+                        <button onclick="shareThread(${index})" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl transition-all ripple flex items-center justify-center space-x-2">
+                            <i class="fas fa-share-alt"></i>
+                            <span>Share</span>
                         </button>
                     </div>
                 `;
@@ -480,16 +880,15 @@
             const thread = currentThreads[index];
             const text = thread.tweets.join('\n\n');
             navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Thread copied to clipboard!');
+                showNotification('Thread copied to clipboard!');
             }).catch(() => {
-                // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('✅ Thread copied to clipboard!');
+                showNotification('Thread copied to clipboard!');
             });
         }
 
@@ -526,7 +925,15 @@
             a.download = `twitter-threads-${new Date().toISOString().split('T')[0]}.txt`;
             a.click();
             URL.revokeObjectURL(url);
+            
+            showNotification('Threads exported successfully!');
         }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            observeElements();
+        });
     </script>
 </body>
 </html>
