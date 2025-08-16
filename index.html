@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧵 Thread Generator - Turn Content into Viral Threads</title>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .tab-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .tab-btn.active {
+            background: #7c3aed;
+            color: white;
+        }
+        .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .thread-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .tweet-bubble {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen flex items-center justify-center p-6">
+            <div class="glass p-8 rounded-2xl max-w-md w-full text-center">
+                <div class="mb-6">
+                    <h1 class="text-4xl font-bold mb-2">🧵 Thread Generator</h1>
+                    <p class="text-gray-200">Turn videos & articles into viral Twitter threads with AI</p>
+                </div>
+                
+                <div class="mb-6 text-sm text-gray-300">
+                    <div class="flex items-center justify-center space-x-4 mb-4">
+                        <span>📺 YouTube</span>
+                        <span>🎬 Videos</span>
+                        <span>📄 Articles</span>
+                    </div>
+                    <p>Powered by OpenAI & Whisper</p>
+                </div>
+                
+                <button id="loginBtn" class="w-full bg-purple-600 hover:bg-purple-700 py-3 px-6 rounded-lg transition-colors font-medium">
+                    🚀 Sign in with Google
+                </button>
+                
+                <div id="loginError" class="error-message rounded-lg p-3 mt-4 hidden">
+                    <p>Login failed. Please try again.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <!-- Header -->
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold">🧵 Thread Generator</h1>
+                        <p class="text-gray-300">AI-powered content to threads</p>
+                    </div>
+                    <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
+                        Logout
+                    </button>
+                </div>
+
+                <!-- Input Section -->
+                <div class="glass rounded-2xl p-6 mb-8 max-w-4xl mx-auto">
+                    <h2 class="text-xl font-bold mb-4">Create Your Thread</h2>
+                    
+                    <!-- Tabs -->
+                    <div class="flex space-x-2 mb-6">
+                        <button class="tab-btn active" data-tab="youtube">📺 YouTube URL</button>
+                        <button class="tab-btn" data-tab="upload">🎬 Upload Video</button>
+                        <button class="tab-btn" data-tab="article">📄 Article Text</button>
+                    </div>
+
+                    <!-- YouTube Tab -->
+                    <div id="youtube-tab" class="tab-content">
+                        <input type="url" id="youtubeUrl" placeholder="https://youtube.com/watch?v=..." 
+                               class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 mb-4 placeholder-gray-400">
+                        <button onclick="processYoutube()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
+                            🚀 Generate Threads
+                        </button>
+                    </div>
+
+                    <!-- Upload Tab -->
+                    <div id="upload-tab" class="tab-content hidden">
+                        <div class="border-2 border-dashed border-purple-500/50 rounded-xl p-8 text-center mb-4">
+                            <div class="mb-4">🎬</div>
+                            <h3 class="text-lg font-semibold mb-2">Upload Video File</h3>
+                            <p class="text-gray-400 mb-4">MP4, MOV, AVI, WAV, MP3 (Max 100MB)</p>
+                            <input type="file" id="videoFile" accept="video/*,audio/*" class="hidden">
+                            <label for="videoFile" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg cursor-pointer transition-colors inline-block">
+                                Choose File
+                            </label>
+                            <p id="fileName" class="text-green-400 mt-2 hidden"></p>
+                        </div>
+                        <button onclick="uploadVideo()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
+                            📤 Upload & Process
+                        </button>
+                    </div>
+
+                    <!-- Article Tab -->
+                    <div id="article-tab" class="tab-content hidden">
+                        <textarea id="articleText" placeholder="Paste your article content here..." rows="8"
+                                  class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 mb-4 placeholder-gray-400"></textarea>
+                        <button onclick="processArticle()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors">
+                            ✨ Generate Threads
+                        </button>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="errorMessage" class="error-message rounded-lg p-4 mt-4 hidden">
+                        <p id="errorText"></p>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div id="processingStatus" class="glass rounded-2xl p-6 mb-8 max-w-4xl mx-auto hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="loading-spinner mr-3"></div>
+                        <h3 class="text-xl font-bold">Processing Your Content...</h3>
+                    </div>
+                    
+                    <div class="bg-white/20 rounded-full h-3 mb-4">
+                        <div id="progressBar" class="bg-purple-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    
+                    <p id="statusText" class="text-gray-300">Starting...</p>
+                    
+                    <div class="mt-4 text-sm text-gray-400">
+                        <p>🎵 Transcribing audio with Whisper...</p>
+                        <p>🤖 Generating threads with AI...</p>
+                        <p>✨ Optimizing for engagement...</p>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="max-w-6xl mx-auto hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold">🎉 Your Viral Threads</h2>
+                        <button onclick="exportAllThreads()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors">
+                            💾 Export All
+                        </button>
+                    </div>
+                    <div id="threadsContainer" class="grid gap-6 md:grid-cols-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration - REPLACE WITH YOUR CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6h_Q1g6xlaOzTZiueGBRW6UiTNf9Ntk0",
+            authDomain: "trendsaas-29b27.firebaseapp.com",
+            projectId: "trendsaas-29b27",
+            storageBucket: "trendsaas-29b27.appspot.com",
+            messagingSenderId: "145439072645",
+            appId: "1:145439072645:web:54545ae2ba05f26d98a4ec",
+            measurementId: "G-Q9Z3YS4VEZ"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        let currentUser = null;
+        let currentThreads = [];
+
+        // Helper functions
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        // Auth state listener
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+            } else {
+                currentUser = null;
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+            }
+        });
+
+        // Login
+        document.getElementById('loginBtn').onclick = () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => {
+                console.error('Login error:', error);
+                document.getElementById('loginError').classList.remove('hidden');
+            });
+        };
+
+        // Logout
+        document.getElementById('logoutBtn').onclick = () => {
+            auth.signOut();
+        };
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab + '-tab').classList.remove('hidden');
+                hideError();
+            };
+        });
+
+        // File upload handler
+        document.getElementById('videoFile').onchange = function() {
+            const fileName = this.files[0]?.name;
+            if (fileName) {
+                const fileSizeMB = (this.files[0].size / 1024 / 1024).toFixed(2);
+                document.getElementById('fileName').textContent = `✓ ${fileName} (${fileSizeMB}MB)`;
+                document.getElementById('fileName').classList.remove('hidden');
+                
+                if (this.files[0].size > 100 * 1024 * 1024) { // 100MB limit
+                    showError('File size must be less than 100MB');
+                    this.value = '';
+                    document.getElementById('fileName').classList.add('hidden');
+                }
+            }
+        };
+
+        // API helper
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const token = await currentUser.getIdToken();
+                const options = {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+                
+                if (data && method !== 'GET') {
+                    if (data instanceof FormData) {
+                        options.body = data;
+                    } else {
+                        options.headers['Content-Type'] = 'application/json';
+                        options.body = JSON.stringify(data);
+                    }
+                }
+                
+                const response = await fetch(`/api${endpoint}`, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API call error:', error);
+                throw error;
+            }
+        }
+
+        // Process YouTube
+        async function processYoutube() {
+            const url = document.getElementById('youtubeUrl').value.trim();
+            if (!url) {
+                showError('Please enter a YouTube URL');
+                return;
+            }
+            
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                showError('Please enter a valid YouTube URL');
+                return;
+            }
+            
+            hideError();
+            
+            try {
+                const result = await apiCall('/upload/youtube', 'POST', { url });
+                if (result.job_id) {
+                    pollJobStatus(result.job_id);
+                } else {
+                    showError('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error processing YouTube video: ' + error.message);
+            }
+        }
+
+        // Upload Video
+        async function uploadVideo() {
+            const file = document.getElementById('videoFile').files[0];
+            if (!file) {
+                showError('Please select a video file');
+                return;
+            }
+            
+            hideError();
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const result = await apiCall('/upload/video', 'POST', formData);
+                if (result.job_id) {
+                    pollJobStatus(result.job_id);
+                } else {
+                    showError('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error uploading video: ' + error.message);
+            }
+        }
+
+        // Process Article
+        async function processArticle() {
+            const text = document.getElementById('articleText').value.trim();
+            if (!text) {
+                showError('Please enter article text');
+                return;
+            }
+            
+            if (text.length < 100) {
+                showError('Article text should be at least 100 characters long');
+                return;
+            }
+            
+            hideError();
+            
+            try {
+                const result = await apiCall('/upload/article', 'POST', { text });
+                if (result.job_id) {
+                    pollJobStatus(result.job_id);
+                } else {
+                    showError('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Error processing article: ' + error.message);
+            }
+        }
+
+        // Poll job status
+        async function pollJobStatus(jobId) {
+            document.getElementById('processingStatus').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            
+            const poll = async () => {
+                try {
+                    const status = await apiCall(`/job/${jobId}/status`);
+                    
+                    document.getElementById('progressBar').style.width = `${status.progress}%`;
+                    
+                    let statusMessage = 'Processing...';
+                    if (status.status === 'processing') {
+                        if (status.progress <= 30) statusMessage = 'Downloading content...';
+                        else if (status.progress <= 60) statusMessage = 'Extracting audio...';
+                        else if (status.progress <= 80) statusMessage = 'Transcribing with AI...';
+                        else statusMessage = 'Generating threads...';
+                    }
+                    
+                    document.getElementById('statusText').textContent = `${statusMessage} ${status.progress}%`;
+                    
+                    if (status.status === 'completed') {
+                        document.getElementById('processingStatus').classList.add('hidden');
+                        const result = await apiCall(`/job/${jobId}/result`);
+                        displayResults(result.threads);
+                    } else if (status.status === 'failed') {
+                        document.getElementById('processingStatus').classList.add('hidden');
+                        showError('Processing failed: ' + (status.error || 'Unknown error'));
+                    } else {
+                        setTimeout(poll, 3000); // Poll every 3 seconds
+                    }
+                } catch (error) {
+                    document.getElementById('processingStatus').classList.add('hidden');
+                    showError('Error checking status: ' + error.message);
+                }
+            };
+            
+            poll();
+        }
+
+        // Display results
+        function displayResults(threads) {
+            const container = document.getElementById('threadsContainer');
+            container.innerHTML = '';
+            currentThreads = threads;
+            
+            if (!threads || threads.length === 0) {
+                showError('No threads were generated. Please try again.');
+                return;
+            }
+            
+            threads.forEach((thread, index) => {
+                const threadDiv = document.createElement('div');
+                threadDiv.className = 'thread-card rounded-xl p-6';
+                threadDiv.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-bold flex-1">${thread.title}</h3>
+                        <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm ml-4">${thread.engagement}</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-6 max-h-80 overflow-y-auto">
+                        ${thread.tweets.map((tweet, i) => `
+                            <div class="tweet-bubble p-3 rounded-lg">
+                                <div class="flex items-start space-x-3">
+                                    <span class="bg-purple-600 text-xs px-2 py-1 rounded-full font-medium">${i + 1}</span>
+                                    <p class="text-gray-200 text-sm flex-1 leading-relaxed">${tweet}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button onclick="copyThread(${index})" class="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm">
+                            📋 Copy Thread
+                        </button>
+                        <button onclick="shareThread(${index})" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors text-sm">
+                            🔗 Share
+                        </button>
+                    </div>
+                `;
+                container.appendChild(threadDiv);
+            });
+            
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Copy thread
+        function copyThread(index) {
+            const thread = currentThreads[index];
+            const text = thread.tweets.join('\n\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Thread copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ Thread copied to clipboard!');
+            });
+        }
+
+        // Share thread
+        function shareThread(index) {
+            const thread = currentThreads[index];
+            const text = `Check out this thread: "${thread.title}"\n\n${thread.tweets[0]}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: thread.title,
+                    text: text
+                });
+            } else {
+                copyThread(index);
+            }
+        }
+
+        // Export all threads
+        function exportAllThreads() {
+            if (!currentThreads || currentThreads.length === 0) {
+                showError('No threads to export');
+                return;
+            }
+            
+            const text = currentThreads.map(thread => 
+                `${thread.title}\n${'='.repeat(thread.title.length)}\n\n${thread.tweets.join('\n\n')}`
+            ).join('\n\n' + '─'.repeat(50) + '\n\n');
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `twitter-threads-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
